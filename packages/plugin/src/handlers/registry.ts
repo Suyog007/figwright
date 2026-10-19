@@ -4,6 +4,7 @@ import { withInstanceIdLookup } from '../node-lookup.js';
 import { createAddComponentPropertyHandler } from './add-component-property.js';
 import { createAddPageHandler } from './add-page.js';
 import { createAddVariableModeHandler } from './add-variable-mode.js';
+import { createAlignNodesHandler } from './align-nodes.js';
 import { createApplyAnimationStyleHandler } from './apply-animation-style.js';
 import { createApplyManualKeyframeTrackHandler } from './apply-manual-keyframe-track.js';
 import { createApplyStyleToNodeHandler } from './apply-style-to-node.js';
@@ -12,6 +13,7 @@ import { createBatchHandler } from './batch.js';
 import { createBindComponentPropertyHandler } from './bind-component-property.js';
 import { createBindVariableToNodeHandler } from './bind-variable-to-node.js';
 import { createBindVariableToPaintHandler } from './bind-variable-to-paint.js';
+import { createBooleanNodesHandler } from './boolean-nodes.js';
 import { createCloneNodeHandler } from './clone-node.js';
 import { createCombineAsVariantsHandler } from './combine-as-variants.js';
 import { createCreateComponentHandler } from './create-component.js';
@@ -23,6 +25,7 @@ import { createCreateInstanceHandler } from './create-instance.js';
 import { createCreatePaintStyleHandler } from './create-paint-style.js';
 import { createCreateRectangleHandler } from './create-rectangle.js';
 import { createCreateSectionHandler } from './create-section.js';
+import { createCreateShapeHandler } from './create-shape.js';
 import { createCreateTextStyleHandler } from './create-text-style.js';
 import { createCreateTextHandler } from './create-text.js';
 import { createCreateVariableCollectionHandler } from './create-variable-collection.js';
@@ -39,6 +42,7 @@ import { createEditComponentPropertyHandler } from './edit-component-property.js
 import { createExportPdfHandler } from './export-pdf.js';
 import { createExportVideoHandler } from './export-video.js';
 import { createFindReplaceTextHandler } from './find-replace-text.js';
+import { createFlattenNodesHandler } from './flatten-nodes.js';
 import { createGetAnnotationsHandler } from './get-annotations.js';
 import { createGetComponentApiHandler } from './get-component-api.js';
 import { createGetDesignContextHandler } from './get-design-context.js';
@@ -141,6 +145,10 @@ export const createSandboxHandlers = (figmaApi: typeof figma): SandboxHandlers =
     set_corner_radius: createSetCornerRadiusHandler(figmaCtx),
     set_strokes: createSetStrokesHandler(figmaCtx),
     move_nodes: createMoveNodesHandler(figmaCtx),
+    align_nodes: createAlignNodesHandler(figmaCtx),
+    create_shape: createCreateShapeHandler(figmaCtx),
+    boolean_nodes: createBooleanNodesHandler(figmaCtx),
+    flatten_nodes: createFlattenNodesHandler(figmaCtx),
     resize_nodes: createResizeNodesHandler(figmaCtx),
     set_auto_layout: createSetAutoLayoutHandler(figmaCtx),
     set_layout_props: createSetLayoutPropsHandler(figmaCtx),

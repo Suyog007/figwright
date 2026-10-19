@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { addComponentPropertyTool } from './add-component-property.js';
 import { addPageTool } from './add-page.js';
 import { addVariableModeTool } from './add-variable-mode.js';
+import { alignNodesTool } from './align-nodes.js';
 import { analyzeProjectTool } from './analyze-project.js';
 import { applyAnimationStyleTool } from './apply-animation-style.js';
 import { applyManualKeyframeTrackTool } from './apply-manual-keyframe-track.js';
@@ -17,6 +18,7 @@ import { batchTool } from './batch.js';
 import { bindComponentPropertyTool } from './bind-component-property.js';
 import { bindVariableToNodeTool } from './bind-variable-to-node.js';
 import { bindVariableToPaintTool } from './bind-variable-to-paint.js';
+import { booleanNodesTool } from './boolean-nodes.js';
 import { cloneNodeTool } from './clone-node.js';
 import { combineAsVariantsTool } from './combine-as-variants.js';
 import { componentMapTool } from './component-map.js';
@@ -29,6 +31,7 @@ import { createInstanceTool } from './create-instance.js';
 import { createPaintStyleTool } from './create-paint-style.js';
 import { createRectangleTool } from './create-rectangle.js';
 import { createSectionTool } from './create-section.js';
+import { createShapeTool } from './create-shape.js';
 import { createTextStyleTool } from './create-text-style.js';
 import { createTextTool } from './create-text.js';
 import { createVariableCollectionTool } from './create-variable-collection.js';
@@ -46,6 +49,7 @@ import { editComponentPropertyTool } from './edit-component-property.js';
 import { exportPdfTool } from './export-pdf.js';
 import { exportVideoTool } from './export-video.js';
 import { findReplaceTextTool } from './find-replace-text.js';
+import { flattenNodesTool } from './flatten-nodes.js';
 import { getAnnotationsTool } from './get-annotations.js';
 import { getComponentApiTool } from './get-component-api.js';
 import { getDesignContextTool } from './get-design-context.js';
@@ -188,6 +192,10 @@ const DECLARED_TOOL_SPECS: readonly ToolSpec[] = [
   setCornerRadiusTool,
   setStrokesTool,
   moveNodesTool,
+  alignNodesTool,
+  createShapeTool,
+  booleanNodesTool,
+  flattenNodesTool,
   setPositionTool,
   resizeNodesTool,
   setAutoLayoutTool,

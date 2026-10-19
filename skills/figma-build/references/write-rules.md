@@ -121,6 +121,19 @@ imported into this file — a library item's key, or its id in the library file,
 Library components need no import step: `create_instance` takes their `componentKey`, which
 `get_local_components` in the library file reports.
 
+## Style in the create call
+
+`create_frame` / `create_rectangle` / `create_ellipse` / `create_shape` / `create_text` accept the
+styling you would otherwise do next: `fills`, `strokes` (+ `strokeWeight`, `strokeAlign`),
+`layoutSizingHorizontal` / `layoutSizingVertical`; a frame or rectangle also `cornerRadius`; a frame also takes `autoLayout` (the whole
+`set_auto_layout` object) and `clipsContent`, and text takes the `set_text_properties` fields. They
+run through the same handlers as the `set_*` tools, in a fixed order (fills, strokes, radius, auto
+layout, then sizing — HUG needs the layout on, FILL needs the parent), after the node is placed. If
+any step is refused the new layer is removed and the error names the step, so a failed create leaves
+nothing half-styled. A paint binds its colour in the same call with `boundVariables: { color:
+variableId }`, as it does in `set_fills`; a scalar (`cornerRadius`, padding, gap) is a literal here, so
+bind it afterwards with `bind_variable_to_node`.
+
 ## Auto-layout for related children, absolute only for placement
 
 - **Use auto-layout whenever children have a structural relationship** (stacked, side-by-side,
@@ -147,6 +160,76 @@ Library components need no import step: `create_instance` takes their `component
   page that has an explicit column system (the input code's container `grid-cols-12` / max-width +
   gutters), set it as a real layout grid so it round-trips and codegen reads the breakpoint structure
   back. Pass `[]` to clear.
+
+## Centering and alignment: CSS → Figma recipes
+
+Centering is a property of the layout, so pick the recipe by what the source CSS does — never by
+nudging `x`/`y` until it looks centred. `align_nodes` is for what has no layout to lean on.
+
+| Source CSS                                                         | Figma                                                                                                                                                                                           |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `display:flex; justify-content:center`                             | `set_auto_layout` `primaryAxisAlignItems: 'CENTER'`                                                                                                                                             |
+| `align-items:center`                                               | `set_auto_layout` `counterAxisAlignItems: 'CENTER'`                                                                                                                                             |
+| `justify-content:center; align-items:center` (true centre)         | both of the above on the same frame                                                                                                                                                             |
+| one child centred in a column/row (`align-self:center`, `mx-auto`) | wrap that child in its own auto-layout frame (`layoutSizing*: 'FILL'` across the parent, `counterAxisAlignItems: 'CENTER'`) — Figma has no per-child alignment                                  |
+| `justify-content:space-between / space-around / space-evenly`      | `primaryAxisAlignItems: 'SPACE_BETWEEN' / 'SPACE_AROUND' / 'SPACE_EVENLY'`                                                                                                                      |
+| `text-align: center / right / justify`                             | `set_text_properties` `textAlignHorizontal: 'CENTER' / 'RIGHT' / 'JUSTIFIED'`                                                                                                                   |
+| text centred vertically in a fixed-height box                      | `set_text_properties` `textAlignVertical: 'CENTER'` (only shows in a fixed-height box)                                                                                                          |
+| evenly spaced row of absolute items                                | `align_nodes` `distribute: 'HORIZONTAL'` (3+ nodes; outer two stay put)                                                                                                                         |
+| `align-items:baseline`                                             | `counterAxisAlignItems: 'BASELINE'` (a `HORIZONTAL` frame only; Figma refuses it on a column)                                                                                                   |
+| `place-items:center` on a grid                                     | put each cell's content in a frame that `FILL`s the cell on both axes, with `primaryAxisAlignItems` and `counterAxisAlignItems` `'CENTER'` (no tool sets a grid child's own cell alignment yet) |
+| `position:absolute; inset:0; margin:auto` (overlay)                | `layoutPositioning: 'ABSOLUTE'`, then `align_nodes` `horizontal: 'CENTER', vertical: 'CENTER'`                                                                                                  |
+| centred in a plain (non-auto-layout) frame                         | `align_nodes` (default `relativeTo: 'PARENT'`); add `set_constraints` `CENTER` only for how it follows a later parent resize                                                                    |
+
+Rules that keep this right:
+
+- **Centre with the parent's alignment, not coordinates.** If you are computing `x`/`y` for something
+  that sits in a flow, the structure is wrong — fix the layout. Where there is no flow to lean on
+  (absolute overlays, free-placed items) use `align_nodes`, never hand arithmetic with `set_position`.
+- **Hug before centring.** A child set to `FILL` on the axis you want to centre on has no slack, so it
+  looks left-aligned. `HUG` it, then centre.
+- **`align_nodes` measures what a node covers, in the parent's own axes** (`relativeTo: 'PARENT'`), so
+  a rotated or `HUG` node is centred by what it really occupies and "left" in a rotated frame is that
+  frame's left edge; `SELECTION` and `distribute` measure on the canvas, as Figma's toolbar does. It
+  refuses — before moving anything — an in-flow auto-layout child (the layout would reflow it back), a
+  layer inside an instance (edit the main component), and a node whose ancestor is in the same call
+  (moving the ancestor already carries it). A node directly on a page needs `relativeTo: 'SELECTION'`.
+- **A node that must be centred inside an auto-layout sibling-flow** (one pinned centre element in a
+  row of others) is the one place to go ABSOLUTE; everything else stays in flow.
+- **`set_constraints` is not a "centre now" command.** It records how a node reacts when its parent
+  resizes and does not move anything. It applies to children of a plain frame and to `ABSOLUTE`
+  children of an auto-layout frame; an in-flow child ignores it.
+- **There is no per-child alignment in auto layout.** Every child shares the frame's
+  `counterAxisAlignItems`; `layoutAlign` only takes `STRETCH` / `INHERIT` (Figma deprecated `MIN` /
+  `CENTER` / `MAX` and resets them, so `set_layout_props` refuses them). Give a child that aligns
+  differently its own wrapper frame.
+
+### Text alignment
+
+`set_text_properties` takes `textAlignHorizontal` (`LEFT` / `CENTER` / `RIGHT` / `JUSTIFIED`) and
+`textAlignVertical` (`TOP` / `CENTER` / `BOTTOM`). Horizontal alignment works within the text box: in a
+`HUG`-width text the lines align to the longest one (a single line has nothing to move), so a paragraph
+centred on its container needs a `FILL` or fixed width. Vertical alignment only shows in a box taller
+than its text (fixed height).
+
+### Shapes
+
+`create_shape` makes a `LINE` (its `width` is its length; pass `strokes` / `strokeWeight` in the same
+call, tilt with `rotate_nodes`), a `POLYGON` (`pointCount` sides) or a `STAR` (`pointCount`,
+`innerRadius` 0–1). Combine shapes with `boolean_nodes` (`UNION` / `SUBTRACT` / `INTERSECT` /
+`EXCLUDE`; the operands must share a parent; `SUBTRACT` cuts the upper layers out of the lowest). As in
+Figma's own Boolean command, the result takes the fill and effects (or their styles) of the topmost
+operand — the lowest for `SUBTRACT` — and no stroke, so style that operand first or `set_strokes`
+the result. Bake it into one editable path with `flatten_nodes` (which keeps the fill)
+only when the artwork is final — flattening turns text into outlines. Neither runs inside a `batch`.
+
+### Other things the tools do not have
+
+Check this list before promising a design; for each, use the fallback or say so.
+
+| Not available                                 | Fallback                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| freeform pen paths, editing a vector's points | draw it as SVG and `import_svg`; for a shape that is a combination, `boolean_nodes` of primitives |
 
 ## Sizing: HUG, FILL, FIXED (the same enum codegen reads)
 
@@ -175,8 +258,8 @@ Bounds apply to auto-layout frames and their direct children.
 ## Text uses a real font, not the fallback
 
 A new `TEXT` node defaults to a **fallback font (Inter)**, not the design system's font. Set the real
-family/style with `set_text_properties` after creating it (the plugin loads the node's fonts on
-edit). In a file whose typography is driven by `STRING` variables (a `font family` / `weight` token),
+family/style in the `create_text` call itself (`fontName`), or with `set_text_properties` on an
+existing node (the plugin loads the node's fonts on edit). In a file whose typography is driven by `STRING` variables (a `font family` / `weight` token),
 read those off `get_variable_defs` and apply the same family — don't leave headings in Inter.
 
 ## Inline rich text → `set_text_range`, not a separate node per span

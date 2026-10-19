@@ -108,7 +108,20 @@ hierarchy. An `empty: true` export means the node rendered nothing (hidden / off
   token exists (`get_variable_defs` tells you what does).
 - **A colour from code is sRGB — say so.** Write it with `space: "SRGB"` beside its r/g/b, or a
   Display P3 file paints it more saturated than the code (`references/write-rules.md`).
-- **Auto-layout for related children**, absolute coordinates only for top-level placement.
+- **Auto-layout for related children**, absolute coordinates only for top-level placement. Centre
+  with the parent's alignment (`primaryAxisAlignItems` / `counterAxisAlignItems`; a child that
+  aligns differently gets its own wrapper frame),
+  never by tuning `x`/`y`; `align_nodes` aligns/distributes what has no layout, `set_text_properties`
+  takes `textAlignHorizontal` / `textAlignVertical`. Recipes, shapes (`create_shape`,
+  `boolean_nodes`, `flatten_nodes`) and what the tools still can't draw, in
+  `references/write-rules.md` "Centering and alignment".
+- **One create call, fully styled.** `create_frame`, `create_rectangle`, `create_ellipse`,
+  `create_shape` and `create_text` take `fills`, `strokes`, `layoutSizing*` (frame and rectangle
+  also `cornerRadius`; a frame also `autoLayout` and `clipsContent`; text its typography incl.
+  `textAlignHorizontal`) — each meaning what it means on its `set_*` tool. Use them instead of a
+  create plus a chain of follow-ups.
+- **`ok: true` is not proof.** Confirm layout-sensitive writes by screenshot or read-back, and report
+  anything the tools could not express instead of claiming it done.
 - **Build incrementally and validate** (screenshot) — recognise the UI pattern and assemble it from
   the matching components, don't reproduce it from primitives.
 - **Match the file's conventions** — naming, structure, and the design system's own patterns, the
