@@ -32,10 +32,12 @@ import { createPaintStyleTool } from './create-paint-style.js';
 import { createRectangleTool } from './create-rectangle.js';
 import { createSectionTool } from './create-section.js';
 import { createShapeTool } from './create-shape.js';
+import { createTextPathTool } from './create-text-path.js';
 import { createTextStyleTool } from './create-text-style.js';
 import { createTextTool } from './create-text.js';
 import { createVariableCollectionTool } from './create-variable-collection.js';
 import { createVariableTool } from './create-variable.js';
+import { createVectorTool } from './create-vector.js';
 import { deleteComponentPropertyTool } from './delete-component-property.js';
 import { deleteNodesTool } from './delete-nodes.js';
 import { deletePageTool } from './delete-page.js';
@@ -68,6 +70,7 @@ import { getScreenshotTool } from './get-screenshot.js';
 import { getSelectionTool } from './get-selection.js';
 import { getStylesTool } from './get-styles.js';
 import { getVariableDefsTool } from './get-variable-defs.js';
+import { getVectorTool } from './get-vector.js';
 import { getViewportTool } from './get-viewport.js';
 import { groupNodesTool } from './group-nodes.js';
 import { iconMapTool } from './icon-map.js';
@@ -79,6 +82,7 @@ import { listFilesTool } from './list-files.js';
 import { lockNodesTool } from './lock-nodes.js';
 import { moveNodesTool } from './move-nodes.js';
 import { navigateToPageTool } from './navigate-to-page.js';
+import { outlineStrokeTool } from './outline-stroke.js';
 import { pingTool } from './ping.js';
 import { removeAnimationStyleTool } from './remove-animation-style.js';
 import { removeManualKeyframeTrackTool } from './remove-manual-keyframe-track.js';
@@ -88,6 +92,7 @@ import { renamePageTool } from './rename-page.js';
 import { renameVariableTool } from './rename-variable.js';
 import { reorderNodesTool } from './reorder-nodes.js';
 import { reparentNodesTool } from './reparent-nodes.js';
+import { repeatNodesTool } from './repeat-nodes.js';
 import { resizeNodesTool } from './resize-nodes.js';
 import { rotateNodesTool } from './rotate-nodes.js';
 import { saveImageFillsTool } from './save-image-fills.js';
@@ -99,6 +104,7 @@ import { searchNodesTool } from './search-nodes.js';
 import { setArcTool } from './set-arc.js';
 import { setAutoLayoutTool } from './set-auto-layout.js';
 import { setBlendModeTool } from './set-blend-mode.js';
+import { setComplexStrokeTool } from './set-complex-stroke.js';
 import { setConstraintsTool } from './set-constraints.js';
 import { setCornerRadiusTool } from './set-corner-radius.js';
 import { setEffectsTool } from './set-effects.js';
@@ -112,13 +118,16 @@ import { setNodeVariableModeTool } from './set-node-variable-mode.js';
 import { setOpacityTool } from './set-opacity.js';
 import { setPositionTool } from './set-position.js';
 import { setReactionsTool } from './set-reactions.js';
+import { setRepeatTool } from './set-repeat.js';
 import { setStrokesTool } from './set-strokes.js';
+import { setTextPathTool } from './set-text-path.js';
 import { setTextPropertiesTool } from './set-text-properties.js';
 import { setTextRangeTool } from './set-text-range.js';
 import { setTextTool } from './set-text.js';
 import { setTimelineDurationTool } from './set-timeline-duration.js';
 import { setVariableCodeSyntaxTool } from './set-variable-code-syntax.js';
 import { setVariableValueTool } from './set-variable-value.js';
+import { setVectorTool } from './set-vector.js';
 import { setVisibleTool } from './set-visible.js';
 import type { ToolSpec } from './spec.js';
 import { swapComponentTool } from './swap-component.js';
@@ -145,6 +154,7 @@ const DECLARED_TOOL_SPECS: readonly ToolSpec[] = [
   getDocumentTool,
   getNodeTool,
   getNodesInfoTool,
+  getVectorTool,
   getMetadataTool,
   getPagesTool,
   searchNodesTool,
@@ -196,6 +206,16 @@ const DECLARED_TOOL_SPECS: readonly ToolSpec[] = [
   createShapeTool,
   booleanNodesTool,
   flattenNodesTool,
+  // Figma Draw
+  repeatNodesTool,
+  setRepeatTool,
+  createTextPathTool,
+  setTextPathTool,
+  setComplexStrokeTool,
+  // Vector geometry
+  createVectorTool,
+  setVectorTool,
+  outlineStrokeTool,
   setPositionTool,
   resizeNodesTool,
   setAutoLayoutTool,

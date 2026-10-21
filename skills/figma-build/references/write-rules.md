@@ -223,13 +223,57 @@ operand — the lowest for `SUBTRACT` — and no stroke, so style that operand f
 the result. Bake it into one editable path with `flatten_nodes` (which keeps the fill)
 only when the artwork is final — flattening turns text into outlines. Neither runs inside a `batch`.
 
-### Other things the tools do not have
+### Figma Draw: vectors, repeats, text on a path, brushes, patterns
 
-Check this list before promising a design; for each, use the fallback or say so.
+These write the same fields `get_design_context` reads, so a design built with them reads back
+exactly.
 
-| Not available                                 | Fallback                                                                                          |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| freeform pen paths, editing a vector's points | draw it as SVG and `import_svg`; for a shape that is a combination, `boolean_nodes` of primitives |
+- **A custom shape, icon or illustration → `create_vector`**: one editable VECTOR layer, no wrapper.
+  Give `vectorPaths` — SVG path data in any syntax, an icon's `d` attribute as is (arcs, relative
+  commands and minified paths are rewritten into the form Figma stores) — or a `vectorNetwork`
+  when the drawing branches or needs per-vertex arrowheads (`strokeCap: 'ARROW_EQUILATERAL'`, …) or
+  corner radii. `x` / `y` place the drawing's origin, so a 24-unit icon drawn at `x: 100` keeps its
+  own padding. An open path shows only with `strokes`; give a pen line round ends with `set_strokes`
+  `strokeCap: 'ROUND'`. A cap set that way goes on every open end, so an arrow cap on a line is a
+  double-headed arrow; for one arrowhead draw the arrow with `vectorNetwork` and put
+  `strokeCap: 'ARROW_EQUILATERAL'` (or `ARROW_LINES`, …) on its end vertex only. A whole SVG file (several layers, its own colours) is still `import_svg`.
+- **Changing a vector's points → `get_vector`, edit, `set_vector`.** Coordinates are the layer's
+  own: Figma refits the box to the drawing, so a point drawn left of 0 moves the layer left rather
+  than the drawing. Fills, strokes and brushes stay; a width profile is dropped if the new network
+  branches. Rectangles, ellipses, stars and lines are `flatten_nodes`'d into a VECTOR first; a
+  vector inside an instance cannot be redrawn (change the main component).
+- **A stroke as a filled shape → `outline_stroke`** (Figma's Outline Stroke): to recolour it as a
+  fill, cut it with `boolean_nodes`, or hand a brush stroke on as plain vector art. The outline lands
+  directly above the node with the stroke's paints as fills; the node stays (`delete_nodes` it to
+  replace it). A scatter brush outlines into thousands of shapes.
+
+- **Repeated artwork → `repeat_nodes`**, not N clones: dial ticks, a ring of dots, petals, a row of
+  stars. The copies stay live (edit the content, every copy follows). LINEAR steps each copy
+  `offset` px along `axis` (`unitType: RELATIVE` = × the content's size, so `1` = touching); RADIAL
+  turns each copy 360°/`count` clockwise about a centre straight below the content, and `offset` is
+  that circle's **diameter**. So for a 12-tick dial of radius 40: draw one tick at the top of the
+  circle, centred on its axis, then `{ repeatType: 'RADIAL', count: 12, offset: 80 }` — its centre
+  sits 40 px below the tick's. A second modifier repeats the first's result (two LINEAR = a grid).
+  A list of UI items is still auto-layout with instances — a repeat group draws copies, it does not
+  hold different content. `set_repeat` changes it, `ungroup_nodes` removes it; an instance cannot
+  override it (change the main component).
+- **Text along a curve → `create_text_path`** on a shape, line or vector (an SVG `<textPath>`, a
+  circular badge). The shape is consumed and the text comes back under a **new id** — use the
+  returned one. A circle's path starts at its rightmost point and runs clockwise through 4
+  segments (0 right → bottom, 1 → left, 2 → top, 3 → right), so lettering centred over the top is
+  `startSegment: 3, startPosition: 0, textAlignHorizontal: 'CENTER'`; `textAlignVertical: 'BOTTOM'`
+  puts it inside the circle instead of outside. Restyle with `set_text_properties` /
+  `set_text_range` (font, size, case, tracking, fills only — no line height or decoration on a
+  path), move the start with `set_text_path`. Not batchable. `find_replace_text` does not search
+  text on a path; `set_text` it directly.
+- **A hand-drawn or textured stroke → `set_complex_stroke`** after `set_strokes` (it shapes an
+  existing visible stroke; colour and weight still come from `set_strokes`): a STRETCH or SCATTER
+  brush, a DYNAMIC wobble, or a width profile (`variableWidthStrokeProperties`, where a point's
+  `width` 0.5 is the stroke's own weight). Any of them stops a dash pattern from drawing.
+- **A repeating background (CSS `background-repeat`) → a `PATTERN` fill** via `set_fills`:
+  `sourceNodeId` is the layer to tile, `scalingFactor` its scale, `spacing` the gap as a fraction of
+  the tile, the two alignments where one tile sits flush (START / CENTER / END). Keep the source
+  layer in the file — hide it or park it off-canvas — since the fill points at it.
 
 ## Sizing: HUG, FILL, FIXED (the same enum codegen reads)
 

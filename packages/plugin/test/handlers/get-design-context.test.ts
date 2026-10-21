@@ -113,6 +113,57 @@ describe('get_design_context handler', () => {
     expect(result.nodes[1]?.propertyOverrides).toEqual([{ name: 'Card', opacity: 0.5 }]);
   });
 
+  it.each([
+    [
+      'a custom brush',
+      {
+        complexStrokeProperties: {
+          type: 'BRUSH',
+          brushType: 'STRETCH',
+          brushName: 'CUSTOM',
+          direction: 'FORWARD',
+        },
+      },
+      false,
+    ],
+    [
+      'a width profile',
+      { variableWidthStrokeProperties: { widthProfile: 'TAPER', variableWidthPoints: [] } },
+      false,
+    ],
+    [
+      'a plain stroke',
+      { complexStrokeProperties: { type: 'BASIC' }, variableWidthStrokeProperties: null },
+      true,
+    ],
+    [
+      'a brush on a hidden layer',
+      { visible: false, complexStrokeProperties: { type: 'DYNAMIC' } },
+      true,
+    ],
+  ])('with %s inside, a repeated instance is deduped: %s', async (_label, stroke, deduped) => {
+    // Brush changes are not in an instance's overrides and custom brushes all read 'CUSTOM', so an
+    // instance drawing one cannot be told apart from the first: it is expanded instead.
+    const instance = (id: string) =>
+      node({
+        id,
+        type: 'INSTANCE',
+        getMainComponentAsync: async () => ({ id: 'main' }),
+        children: [
+          node({
+            id: `${id}-frame`,
+            children: [node({ id: `${id}-line`, type: 'VECTOR', ...stroke })],
+          }),
+        ],
+        overrides: [],
+      });
+    const result = (await createGetDesignContextHandler(
+      fakeFigma({ selection: [instance('first'), instance('second')] }),
+    )({ detail: 'full', dedupeComponents: true })) as GetDesignContextResult;
+    expect(result.nodes[1]?.deduped === true).toBe(deduped);
+    expect(result.nodes[1]?.children === undefined).toBe(deduped);
+  });
+
   it('limits depth and flags truncated nodes', async () => {
     const grandchild = node({ id: 'gc', type: 'RECTANGLE' });
     const child = node({ id: 'c', children: [grandchild] });
@@ -840,6 +891,48 @@ describe('get_design_context handler', () => {
     await expect(handler({ detail: 'huge' })).rejects.toThrow(/detail/);
     await expect(handler({ nodeId: 5 })).rejects.toThrow(/nodeId/);
     await expect(handler({ dedupeComponents: 'yes' })).rejects.toThrow(/dedupeComponents/);
+  });
+});
+
+describe('get_design_context — repeat groups', () => {
+  it('reads a repeat group inside an instance off its main component’s node', async () => {
+    const modifiers = [
+      {
+        type: 'REPEAT',
+        repeatType: 'LINEAR',
+        axis: 'VERTICAL',
+        unitType: 'PIXELS',
+        offset: 10,
+        count: 2,
+      },
+    ];
+    const at = (x: number, y: number) => [
+      [1, 0, x],
+      [0, 1, y],
+    ];
+    const group = node({
+      id: 'I1:1;2:2',
+      type: 'TRANSFORM_GROUP',
+      absoluteTransform: at(0, 0),
+      absoluteBoundingBox: { x: 0, y: 0, width: 10, height: 10 },
+      absoluteRenderBounds: { x: 0, y: 0, width: 10, height: 20 },
+      transformModifiers: [],
+      children: [],
+    });
+    (group as unknown as { children: unknown[] }).children.push(
+      node({ id: 'I1:1;3:3', absoluteTransform: at(0, 0), parent: group }),
+    );
+    const figmaCtx = fakeFigma({
+      selection: [group],
+      lookup: {
+        '2:2': { type: 'TRANSFORM_GROUP', transformModifiers: modifiers } as unknown as BaseNode,
+      },
+    });
+    const result = (await createGetDesignContextHandler(figmaCtx)({
+      detail: 'full',
+    })) as GetDesignContextResult;
+    expect(result.nodes[0]?.transformModifiers).toEqual(modifiers);
+    expect(result.nodes[0]?.repeatTransforms).toEqual(['translate(0px, 10px)']);
   });
 });
 

@@ -16,7 +16,7 @@ import {
 } from '@figwright/shared';
 
 import type { SandboxToolHandler } from '../dispatcher.js';
-import { serializeCodeSyntax, serializeFlatSync } from '../serializer.js';
+import { inheritRepeat, serializeCodeSyntax, serializeFlatSync } from '../serializer.js';
 import { displayP3Marker } from './color-profile.js';
 
 const isSceneNode = (node: BaseNode): node is SceneNode =>
@@ -102,6 +102,14 @@ export const project = (node: SceneNode, detail: DetailLevel): DesignContextNode
   if (flat.dashPattern !== undefined) out.dashPattern = flat.dashPattern;
   if (flat.strokeCap !== undefined) out.strokeCap = flat.strokeCap;
   if (flat.strokeJoin !== undefined) out.strokeJoin = flat.strokeJoin;
+  // Figma Draw strokes CSS cannot draw, and the box they actually paint into.
+  if (flat.complexStrokeProperties !== undefined) {
+    out.complexStrokeProperties = flat.complexStrokeProperties;
+  }
+  if (flat.variableWidthStrokeProperties !== undefined) {
+    out.variableWidthStrokeProperties = flat.variableWidthStrokeProperties;
+  }
+  if (flat.renderBounds !== undefined) out.renderBounds = flat.renderBounds;
   if (flat.effects !== undefined) out.effects = flat.effects;
   // Auto-layout / positioning — surfaced here (not just get_node) so codegen reads exact padding /
   // gap / justify / align / grid placement instead of inferring them from x/y/w/h geometry.
@@ -212,6 +220,10 @@ export const project = (node: SceneNode, detail: DetailLevel): DesignContextNode
       return seg;
     });
   }
+  // Figma Draw: where text on a path starts, and how a repeat group repeats its content.
+  if (flat.textPathStartData !== undefined) out.textPathStartData = flat.textPathStartData;
+  if (flat.transformModifiers !== undefined) out.transformModifiers = flat.transformModifiers;
+  if (flat.repeatTransforms !== undefined) out.repeatTransforms = flat.repeatTransforms;
   // Grounding fields (M3 P1): surface what serializeFlatSync already captured but
   // get_design_context used to drop. id→token-name resolution lands in P2 (top-level maps below);
   // globalVars dedup in P3.
@@ -471,6 +483,8 @@ interface BuildCtx {
   detail: DetailLevel;
   dedupe: boolean;
   seen: Set<string>;
+  /** Node lookup, for what a node inside an instance keeps on its main component's node. */
+  lookup: (id: string) => Promise<BaseNode | null>;
 }
 
 /**
@@ -484,8 +498,9 @@ const collectTextOverrides = (instance: SceneNode): { name: string; characters: 
   const out: { name: string; characters: string }[] = [];
   const visit = (n: SceneNode): void => {
     if (n.visible === false) return;
-    if (n.type === 'TEXT') {
-      const chars = (n as TextNode).characters;
+    // Text set along a path is per-instance copy too (a badge's wording overrides like a label's).
+    if (n.type === 'TEXT' || n.type === 'TEXT_PATH') {
+      const chars = (n as TextNode | TextPathNode).characters;
       if (chars !== '') out.push({ name: n.name, characters: chars });
       return;
     }
@@ -619,6 +634,29 @@ export const motionSummary = (node: SceneNode): MotionSummary | undefined => {
   return out;
 };
 
+/**
+ * Whether a visible brush, wobble or width profile is drawn anywhere in this subtree. An instance's
+ * overrides do not list a changed brush, and every custom brush reads the same ('CUSTOM'), so two
+ * instances that draw different brushes look identical to dedupe — measured on a published brush
+ * kit, where ten cards of one component, each with its own brush, collapsed into the first. Such an
+ * instance is expanded instead, every stroke with its own renderBounds to export from.
+ */
+const hasDrawStroke = (root: SceneNode): boolean => {
+  const stack: SceneNode[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (node.visible === false) continue;
+    const complex = (node as { complexStrokeProperties?: { type?: unknown } })
+      .complexStrokeProperties;
+    if (complex !== undefined && complex.type !== 'BASIC') return true;
+    const width = (node as { variableWidthStrokeProperties?: { widthProfile?: unknown } | null })
+      .variableWidthStrokeProperties;
+    if (width != null && width.widthProfile !== 'UNIFORM') return true;
+    if ('children' in node) stack.push(...(node as ChildrenMixin).children);
+  }
+  return false;
+};
+
 /** RemainingDepth: -1 = unlimited; otherwise levels of children still allowed below this node. */
 const buildNode = async (
   node: SceneNode,
@@ -626,6 +664,7 @@ const buildNode = async (
   ctx: BuildCtx,
 ): Promise<DesignContextNode> => {
   const out = project(node, ctx.detail);
+  if (ctx.detail === 'full') await inheritRepeat(node, out, ctx.lookup);
 
   // Motion is a Motion-API dimension (not a serializer field), so it's attached here rather than in
   // project(). Full detail only — the compact hot path stays untouched.
@@ -659,7 +698,7 @@ const buildNode = async (
         out.mainComponent = mc;
       }
       if (ctx.dedupe) {
-        if (ctx.seen.has(main.id)) {
+        if (ctx.seen.has(main.id) && !hasDrawStroke(node)) {
           out.deduped = true;
           expandChildren = false;
           const overrides = collectTextOverrides(node);
@@ -794,6 +833,7 @@ export const createGetDesignContextHandler =
       detail: isDetailLevel(p.detail) ? p.detail : 'compact',
       dedupe: p.dedupeComponents === true,
       seen: new Set<string>(),
+      lookup: id => figmaCtx.getNodeByIdAsync(id),
     };
 
     let roots: readonly SceneNode[];
