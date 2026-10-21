@@ -115,6 +115,12 @@ export interface DesignContextNode {
   width?: number;
   height?: number;
   rotation?: number;
+  /** Mirrored (Flip horizontal / vertical); `rotation` reads the same either way. */
+  flipped?: boolean;
+  /** CSS transform placing a rotated or flipped node: transform-origin 0 0 at its x / y. */
+  cssTransform?: string;
+  /** With cssTransform: the turned box's bounding box, as offsets from x / y. */
+  boundingBox?: SerializedBounds;
   opacity?: number;
   cornerRadius?: number | typeof MIXED;
   /** Figma corner smoothing, 0–1; omitted when 0 (circular). */
@@ -366,6 +372,9 @@ export const DesignContextNodeSchema = z.lazy(() =>
     width: z.number().optional(),
     height: z.number().optional(),
     rotation: z.number().optional(),
+    flipped: z.boolean().optional(),
+    cssTransform: z.string().optional(),
+    boundingBox: SerializedBoundsSchema.optional(),
     opacity: z.number().optional(),
     cornerRadius: z.union([z.number(), z.literal(MIXED)]).optional(),
     cornerSmoothing: z.number().min(0).max(1).optional(),
@@ -649,6 +658,11 @@ export const LAYOUT_FIELDS = [
   'repeatTransforms',
   // The box a Draw stroke or a text path actually paints into: where an exported asset goes.
   'renderBounds',
+  // Which way the box faces: a mirrored element drawn unmirrored, or a turned one placed by its
+  // bounding box, is in the wrong place and the wrong shape.
+  'flipped',
+  'cssTransform',
+  'boundingBox',
 ] as const satisfies readonly (keyof DesignContextNode)[];
 
 /**

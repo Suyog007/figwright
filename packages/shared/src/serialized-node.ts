@@ -607,6 +607,18 @@ export interface SerializedNode {
   width: number;
   height: number;
   rotation?: number;
+  /** Mirrored (Flip horizontal / vertical): `rotation` alone reads the same with or without it. */
+  flipped?: boolean;
+  /**
+   * The CSS transform that turns the node into place with transform-origin 0 0 at its x / y — set
+   * only on a node that is rotated or flipped.
+   */
+  cssTransform?: string;
+  /**
+   * With cssTransform: the turned box's bounding box in the parent's axes, as offsets from x / y —
+   * the room an auto-layout parent gives it.
+   */
+  boundingBox?: SerializedBounds;
   opacity?: number;
   cornerRadius?: number | Mixed;
   /** Figma corner smoothing, 0–1 (0 = circular). */
@@ -796,6 +808,9 @@ export const SerializedNodeSchema = z.lazy(() =>
     width: z.number(),
     height: z.number(),
     rotation: z.number().optional(),
+    flipped: z.boolean().optional(),
+    cssTransform: z.string().optional(),
+    boundingBox: SerializedBoundsSchema.optional(),
     opacity: z.number().optional(),
     cornerRadius: z.union([z.number(), z.literal(MIXED)]).optional(),
     cornerSmoothing: z.number().min(0).max(1).optional(),

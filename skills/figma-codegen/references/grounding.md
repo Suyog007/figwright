@@ -256,7 +256,10 @@ the obvious ones. These are ordered by how easily they're silently dropped.
   whose modifiers are all LINEAR is also a plain flex row / column, `gap` = the step between copies
   minus the content's size along that axis. `repeatTransforms` is left out past 100 copies — then
   export the group, as you would anyway when it is decorative art. Copies that step backwards (a
-  negative offset) are drawn outside the group's box.
+  negative offset) are drawn outside the group's box. A turned or flipped repeat group needs nothing
+  more: its entries are already in its parent's axes, so the boxes go at the group's `x` / `y`
+  unturned, each child inside with its own `cssTransform` — within 0.1% of Figma on turned and
+  flipped groups.
 - **Brush, dynamic and width-profile strokes.** A node carrying `complexStrokeProperties` (a
   textured STRETCH or SCATTER brush, or a DYNAMIC hand-drawn wobble) or
   `variableWidthStrokeProperties` (a stroke that thickens and thins along its path) has a stroke no
@@ -267,6 +270,19 @@ the obvious ones. These are ordered by how easily they're silently dropped.
   Every custom brush reads `brushName: 'CUSTOM'`, so two of them cannot be told apart from their
   fields: an instance holding such a stroke is never deduped — export each instance's stroke from
   its own node rather than reusing the first one's asset.
+- **Rotated and flipped nodes.** A node turned or mirrored within its parent carries
+  `cssTransform`, and `flipped: true` when it is mirrored — `rotation` alone reads the same with or
+  without a flip (a node flipped top to bottom reads 0). Place its box at `x` / `y` with
+  `transform-origin: 0 0` and `transform` set to `cssTransform` verbatim: `x` / `y` is the node's
+  origin, not its bounding box's top-left. Measured on turned and flipped shapes, that is within
+  0.3% of Figma; turning by `rotation` alone was 79% off and rotating about CSS's default centre 88%.
+  In an auto-layout flow Figma gives a turned or flipped child its bounding box's room (a 100 × 60
+  node turned 30° takes 116.6 px of a row), which the node reports as `boundingBox`: emit a flow
+  item `boundingBox.width` × `boundingBox.height` and, absolutely inside it, the node at left
+  `-boundingBox.x`, top `-boundingBox.y` with `transform-origin: 0 0` and `cssTransform` — within
+  0.7% of Figma, against 35% for a turned flow item without that box. A `GROUP` carries no `cssTransform` even when turned or flipped: its children already
+  carry it, so never turn a group's wrapper by its `rotation` — that applies it twice, and a flip
+  twice is no flip.
 - **Render bounds.** A Draw node — one of those strokes, a repeat group, text on a path — may carry
   `renderBounds` `{ x, y, width, height }`: the box it actually paints into, as offsets from its
   own `x` / `y` in its parent's axes. An export of the node covers exactly that box (measured on a
