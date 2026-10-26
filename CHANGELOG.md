@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.7.0
+
+[compare changes](https://github.com/awdr74100/figwright/compare/v0.6.0...v0.7.0)
+
+### 🚀 Enhancements
+
+- **grounding:** Read shader identity and named parameters, on plugin-typings 1.141.0 ([#272](https://github.com/awdr74100/figwright/pull/272))
+- **design:** Set clipping and corner smoothing, and resize lines by length ([#280](https://github.com/awdr74100/figwright/pull/280))
+- **design:** Import shared variables and styles by key ([#279](https://github.com/awdr74100/figwright/pull/279))
+- **grounding:** Read which variable mode a node renders in, and switch it ([#281](https://github.com/awdr74100/figwright/pull/281))
+- **design:** Put an image into an existing layer's fill ([#282](https://github.com/awdr74100/figwright/pull/282))
+- **design:** Read and set how a grid places its children, and keep grids intact on write and rollback ([#290](https://github.com/awdr74100/figwright/pull/290))
+- **design:** Align and shape tools, text alignment, and style nodes in their create call ([#302](https://github.com/awdr74100/figwright/pull/302))
+- **design,codegen:** Draw and edit vectors, outline strokes, and read and write Figma Draw repeats, text paths, brushes and patterns ([#309](https://github.com/awdr74100/figwright/pull/309))
+
+### 🩹 Fixes
+
+- **relay:** Stop false disconnects and keep large reads from dropping the connection ([#273](https://github.com/awdr74100/figwright/pull/273))
+- **relay:** Keep the server alive through errors nothing caught ([#275](https://github.com/awdr74100/figwright/pull/275))
+- **relay:** Keep background reads yielding without timer callbacks ([#278](https://github.com/awdr74100/figwright/pull/278))
+- **grounding:** Declare every override field, and close the guidance gaps since v0.6.0 ([#283](https://github.com/awdr74100/figwright/pull/283))
+- **codegen:** Measure corner smoothing before mapping it, and undo #283's overreach ([#284](https://github.com/awdr74100/figwright/pull/284), [#283](https://github.com/awdr74100/figwright/issues/283))
+- **grounding:** Drop deleted variable modes, and harden the design_diff gate and smoothing wording ([#285](https://github.com/awdr74100/figwright/pull/285))
+- **grounding:** Read an image's crop region and every paint's own opacity ([#291](https://github.com/awdr74100/figwright/pull/291))
+- **plugin:** Restore BigInt so the plugin loads under Figma's Developer VM ([#294](https://github.com/awdr74100/figwright/pull/294))
+- **grounding:** Read a noise effect's settings, and say how to render it ([#296](https://github.com/awdr74100/figwright/pull/296))
+- **grounding,design:** Read and write Display P3 colours as the file stores them ([#297](https://github.com/awdr74100/figwright/pull/297))
+- **grounding,codegen:** Read glass, texture and progressive blurs, and scale every blur to CSS ([#298](https://github.com/awdr74100/figwright/pull/298))
+- **design:** Write drop shadows the way a CSS box-shadow draws them ([#299](https://github.com/awdr74100/figwright/pull/299))
+- **plugin:** Tell an outdated plugin to replace its files, not re-import ([#306](https://github.com/awdr74100/figwright/pull/306))
+- **design,codegen:** Read and write mirrored nodes, and place turned ones by their origin ([#310](https://github.com/awdr74100/figwright/pull/310))
+
+### 📖 Documentation
+
+- **repo:** Say how to update the server, plugin, and skills ([#305](https://github.com/awdr74100/figwright/pull/305))
+
+### 🏡 Chore
+
+- **repo:** Move the dev and CI Node to 24.22.1 ([#311](https://github.com/awdr74100/figwright/pull/311))
+
+### ✅ Tests
+
+- **repo:** Decode child process output as UTF-8 across chunk boundaries ([#315](https://github.com/awdr74100/figwright/pull/315))
+
+### ❤️ Contributors
+
+- Roya ([@awdr74100](https://github.com/awdr74100))
+- Kieu Quang ([@kbqdev](https://github.com/kbqdev))
+- Luotao21 <luotao21@foxmail.com>
+
 ## v0.6.0
 
 [compare changes](https://github.com/awdr74100/figwright/compare/v0.5.0...v0.6.0)
